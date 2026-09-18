@@ -1,10 +1,15 @@
 package com.inventario.app.service;
 
+import com.inventario.app.dto.ProductoRequest;
+import com.inventario.app.dto.ProductoResponse;
 import com.inventario.app.exception.DuplicateResourceException;
 import com.inventario.app.exception.InvalidDataException;
 import com.inventario.app.exception.ResourceNotFoundException;
+import com.inventario.app.model.Categoria;
 import com.inventario.app.model.Producto;
+import com.inventario.app.repository.CategoriaRepository;
 import com.inventario.app.repository.ProductoRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,55 +19,76 @@ import java.util.List;
 public class ProductoService {
 
     private final ProductoRepository productoRepository;
+    private final CategoriaRepository categoriaRepository;
 
-    public ProductoService(ProductoRepository productoRepository){
+    public ProductoService(ProductoRepository productoRepository, CategoriaRepository categoriaRepository) {
         this.productoRepository = productoRepository;
+        this.categoriaRepository = categoriaRepository;
     }
 
-    public Producto save(Producto producto){
+    @Transactional
+    public ProductoResponse save(ProductoRequest request) {
 
-        if(producto == null){
-            throw new InvalidDataException("Los datos del producto son obligatorios");
+        String nombre = request.nombre().trim();
+
+        if (productoRepository.existsByNombreIgnoreCase(nombre)) {
+            throw DuplicateResourceException.producto(nombre);
         }
 
-        if(producto.getNombre() == null || producto.getNombre().trim().isEmpty()){
-            throw new InvalidDataException("El nombre del producto no puede estar vacío");
-        }
+        Categoria categoria = buscarCategoria(request.categoriaId());
 
-        if(producto.getPrecio() == null){
-            throw new InvalidDataException("El precio del producto es obligatorio");
-        }
+        Producto producto = new Producto();
+        producto.setNombre(nombre);
+        producto.setPrecio(request.precio());
+        producto.setCategoria(categoria);
 
-        if(producto.getPrecio().compareTo(BigDecimal.ZERO) <= 0){
-            throw new InvalidDataException("El precio del producto debe ser mayor que cero");
-        }
-
-        // Se guarda el nombre sin espacios sobrantes
-        producto.setNombre(producto.getNombre().trim());
-
-        if (productoRepository.existsByNombreIgnoreCase(producto.getNombre())){
-            throw new DuplicateResourceException("Ya existe un producto con el nombre " + producto.getNombre());
-        }
-
-        producto.setId(null);
-
-        return productoRepository.save(producto);
+        return toResponse(productoRepository.save(producto));
     }
 
-    public List<Producto> findAll(){
-        return productoRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<ProductoResponse> findAll() {
+        return productoRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public void deleteById(Long id){
+    @Transactional
+    public void deleteById(Long id) {
 
-        if (id == null || id <= 0){
-            throw new InvalidDataException("El id del producto debe ser mayor que cero");
-        }
+        validarId(id);
 
-        if (!productoRepository.existsById(id)){
-            throw new ResourceNotFoundException("No existe un producto con Id " + id);
+        if (!productoRepository.existsById(id)) {
+            throw ResourceNotFoundException.producto(id);
         }
 
         productoRepository.deleteById(id);
+    }
+
+    private Categoria buscarCategoria(Long categoriaId) {
+
+        if (categoriaId == null) {
+            return null;
+        }
+
+        return categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> ResourceNotFoundException.categoria(categoriaId));
+    }
+
+    private void validarId(Long id) {
+        if (id == null || id <= 0) {
+            throw new InvalidDataException("El id debe ser mayor que cero");
+        }
+    }
+
+    private ProductoResponse toResponse(Producto producto) {
+
+        Categoria categoria = producto.getCategoria();
+
+        return new ProductoResponse(
+                producto.getId(),
+                producto.getNombre(),
+                producto.getPrecio(),
+                categoria != null ? categoria.getId() : null,
+                categoria != null ? categoria.getNombre() : null);
     }
 }

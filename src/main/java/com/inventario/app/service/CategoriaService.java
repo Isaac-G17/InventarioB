@@ -1,11 +1,17 @@
 package com.inventario.app.service;
 
+import com.inventario.app.dto.CategoriaRequest;
+import com.inventario.app.dto.CategoriaResponse;
 import com.inventario.app.exception.DuplicateResourceException;
 import com.inventario.app.exception.InvalidDataException;
 import com.inventario.app.exception.ResourceNotFoundException;
 import com.inventario.app.model.Categoria;
+import com.inventario.app.model.Producto;
 import com.inventario.app.repository.CategoriaRepository;
+import com.inventario.app.repository.ProductoRepository;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -13,47 +19,66 @@ import java.util.List;
 public class CategoriaService {
 
     private final CategoriaRepository categoriaRepository;
+    private final ProductoRepository productoRepository;
 
-    public CategoriaService(CategoriaRepository categoriaRepository){
+    public CategoriaService(CategoriaRepository categoriaRepository,
+                            ProductoRepository productoRepository) {
         this.categoriaRepository = categoriaRepository;
+        this.productoRepository = productoRepository;
     }
 
-    public Categoria save(Categoria categoria){
+    @Transactional
+    public CategoriaResponse save(CategoriaRequest request) {
 
-        if(categoria == null){
-            throw new InvalidDataException("Los datos de la categoría son obligatorios");
+        String nombre = request.nombre().trim();
+
+        if (categoriaRepository.existsByNombreIgnoreCase(nombre)) {
+            throw DuplicateResourceException.categoria(nombre);
         }
 
-        if(categoria.getNombre() == null || categoria.getNombre().trim().isEmpty()){
-            throw new InvalidDataException("El nombre de la categoría no puede estar vacío");
-        }
+        Categoria categoria = new Categoria();
+        categoria.setNombre(nombre);
 
-        // Se guarda el nombre sin espacios sobrantes
-        categoria.setNombre(categoria.getNombre().trim());
-
-        if (categoriaRepository.existsByNombreIgnoreCase(categoria.getNombre())){
-            throw new DuplicateResourceException("Ya existe una categoría con el nombre " + categoria.getNombre());
-        }
-
-        categoria.setId(null);
-
-        return categoriaRepository.save(categoria);
+        return toResponse(categoriaRepository.save(categoria));
     }
 
-    public List<Categoria> findAll(){
-        return categoriaRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<CategoriaResponse> findAll() {
+        return categoriaRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
-    public void deleteById(Long id){
+    @Transactional
+    public void deleteById(Long id) {
 
-        if (id == null || id <= 0){
-            throw new InvalidDataException("El id de la categoría debe ser mayor que cero");
+        validarId(id);
+
+        if (!categoriaRepository.existsById(id)) {
+            throw ResourceNotFoundException.categoria(id);
         }
 
-        if (!categoriaRepository.existsById(id)){
-            throw new ResourceNotFoundException("No existe una categoría con Id " + id);
-        }
+        desasignarProductos(id);
 
         categoriaRepository.deleteById(id);
+    }
+
+    private void desasignarProductos(Long categoriaId) {
+
+        List<Producto> productos = productoRepository.findByCategoriaId(categoriaId);
+
+        productos.forEach(producto -> producto.setCategoria(null));
+
+        productoRepository.saveAll(productos);
+    }
+
+    private void validarId(Long id) {
+        if (id == null || id <= 0) {
+            throw new InvalidDataException("El id debe ser mayor que cero");
+        }
+    }
+
+    private CategoriaResponse toResponse(Categoria categoria) {
+        return new CategoriaResponse(categoria.getId(), categoria.getNombre());
     }
 }
