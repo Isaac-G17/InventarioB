@@ -12,7 +12,6 @@ import com.inventario.app.repository.ProductoRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service

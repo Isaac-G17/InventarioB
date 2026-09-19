@@ -3,7 +3,6 @@ package com.inventario.app.controller;
 
 import com.inventario.app.dto.CategoriaRequest;
 import com.inventario.app.dto.CategoriaResponse;
-import com.inventario.app.model.Categoria;
 import com.inventario.app.service.CategoriaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
