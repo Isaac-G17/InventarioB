@@ -43,4 +43,16 @@ public class CategoriaController {
     public void delete(@PathVariable Long id) { // @PathVariable -> toma el id de la url y lo pasa al metodo
         categoriaService.deleteById(id);
     }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar una categoría", description = "Retorna una categoría por su id")
+    public CategoriaResponse getById(@PathVariable Long id) {
+        return categoriaService.findById(id);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar una categoría", description = "Cambia el nombre de una categoría existente")
+    public CategoriaResponse update(@PathVariable Long id, @Valid @RequestBody CategoriaRequest request) {
+        return categoriaService.update(id, request);
+    }
 }

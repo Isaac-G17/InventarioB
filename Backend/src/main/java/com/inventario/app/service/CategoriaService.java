@@ -52,15 +52,40 @@ public class CategoriaService {
     @Transactional
     public void deleteById(Long id) {
 
-        validarId(id);
-
-        if (!categoriaRepository.existsById(id)) {
-            throw ResourceNotFoundException.categoria(id);
-        }
+        Categoria categoria = buscarCategoria(id);
 
         desasignarProductos(id);
 
-        categoriaRepository.deleteById(id);
+        categoriaRepository.delete(categoria);
+    }
+
+    @Transactional(readOnly = true)
+    public CategoriaResponse findById(Long id) {
+        return toResponse(buscarCategoria(id));
+    }
+
+    @Transactional
+    public CategoriaResponse update(Long id, CategoriaRequest request) {
+
+        Categoria categoria = buscarCategoria(id);
+
+        String nombre = request.nombre().trim();
+
+        if (categoriaRepository.existsByNombreIgnoreCaseAndIdNot(nombre, id)) {
+            throw DuplicateResourceException.categoria(nombre);
+        }
+
+        categoria.setNombre(nombre);
+
+        return toResponse(categoria);
+    }
+
+    private Categoria buscarCategoria(Long id) {
+
+        validarId(id);
+
+        return categoriaRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.categoria(id));
     }
 
     private void desasignarProductos(Long categoriaId) {

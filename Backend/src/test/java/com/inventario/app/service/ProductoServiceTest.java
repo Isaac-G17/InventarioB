@@ -97,4 +97,50 @@ class ProductoServiceTest {
 
         assertThat(response.categoriaNombre()).isEqualTo("Periféricos");
     }
+
+    @Test
+    void actualizaConservandoElMismoNombre() {
+
+        Producto existente = new Producto();
+        existente.setId(1L);
+        existente.setNombre("Mouse");
+        existente.setPrecio(new BigDecimal("25000"));
+
+        ProductoRequest request = new ProductoRequest("Mouse", new BigDecimal("30000"), null);
+
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(existente));
+        when(productoRepository.existsByNombreIgnoreCaseAndIdNot("Mouse", 1L)).thenReturn(false);
+
+        ProductoResponse response = productoService.update(1L, request);
+
+        assertThat(response.precio()).isEqualByComparingTo("30000");
+        assertThat(response.nombre()).isEqualTo("Mouse");
+    }
+
+    @Test
+    void rechazaActualizarConNombreDeOtroProducto() {
+
+        Producto existente = new Producto();
+        existente.setId(1L);
+        existente.setNombre("Mouse");
+
+        ProductoRequest request = new ProductoRequest("Teclado", new BigDecimal("30000"), null);
+
+        when(productoRepository.findById(1L)).thenReturn(Optional.of(existente));
+        when(productoRepository.existsByNombreIgnoreCaseAndIdNot("Teclado", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> productoService.update(1L, request))
+                .isInstanceOf(DuplicateResourceException.class);
+    }
+
+    @Test
+    void rechazaActualizarProductoInexistente() {
+
+        ProductoRequest request = new ProductoRequest("Mouse", new BigDecimal("30000"), null);
+
+        when(productoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productoService.update(99L, request))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
 }

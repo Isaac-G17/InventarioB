@@ -31,7 +31,6 @@ public class ProductoController {
     }
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Listar todos los productos", description = "Retorna la colección completa de productos registrados")
     public List<ProductoResponse> getAll() {
         return productoService.findAll();
@@ -42,5 +41,17 @@ public class ProductoController {
     @Operation(summary = "Eliminar un producto", description = "Elimina un producto por su id")
     public void delete(@PathVariable Long id) { // @PathVariable -> toma el id de la url y lo pasa al metodo
         productoService.deleteById(id);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Consultar un producto", description = "Retorna un producto por su id")
+    public ProductoResponse getById(@PathVariable Long id) {
+        return productoService.findById(id);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar un producto", description = "Reemplaza los datos de un producto existente")
+    public ProductoResponse update(@PathVariable Long id, @Valid @RequestBody ProductoRequest request) {
+        return productoService.update(id, request);
     }
 }

@@ -37,9 +37,7 @@ public class ProductoService {
         Categoria categoria = buscarCategoria(request.categoriaId());
 
         Producto producto = new Producto();
-        producto.setNombre(nombre);
-        producto.setPrecio(request.precio());
-        producto.setCategoria(categoria);
+        asignarDatos(producto,nombre,request);
 
         return toResponse(productoRepository.save(producto));
     }
@@ -49,6 +47,27 @@ public class ProductoService {
         return productoRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductoResponse findById(Long id) {
+        return toResponse(buscarProducto(id));
+    }
+
+    @Transactional
+    public ProductoResponse update(Long id, ProductoRequest request) {
+
+        Producto producto = buscarProducto(id);
+
+        String nombre = request.nombre().trim();
+
+        if (productoRepository.existsByNombreIgnoreCaseAndIdNot(nombre, id)) {
+            throw DuplicateResourceException.producto(nombre);
+        }
+
+        asignarDatos(producto, nombre, request);
+
+        return toResponse(producto);
     }
 
     @Transactional
@@ -89,5 +108,19 @@ public class ProductoService {
                 producto.getPrecio(),
                 categoria != null ? categoria.getId() : null,
                 categoria != null ? categoria.getNombre() : null);
+    }
+
+    private Producto buscarProducto(Long id) {
+
+        validarId(id);
+
+        return productoRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.producto(id));
+    }
+
+    private void asignarDatos(Producto producto, String nombre, ProductoRequest request) {
+        producto.setNombre(nombre);
+        producto.setPrecio(request.precio());
+        producto.setCategoria(buscarCategoria(request.categoriaId()));
     }
 }
