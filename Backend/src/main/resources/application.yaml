@@ -2,18 +2,16 @@ spring:
   application:
     name: app
   datasource:
-    url: jdbc:h2:mem:inventario
-    username: root
-    password:
-  h2:
-    console:
-      enabled: true
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/inventario}
+    username: ${DB_USERNAME:inventario}
+    password: ${DB_PASSWORD:inventario}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    open-in-view: false
 security:
   jwt:
-    secret: demo-secret-key-change-this-in-production-123456789
+    secret: ${JWT_SECRET:demo-secret-key-change-this-in-production-123456789}
     access-token-expiration-ms: 900000
     refresh-token-expiration-ms: 604800000

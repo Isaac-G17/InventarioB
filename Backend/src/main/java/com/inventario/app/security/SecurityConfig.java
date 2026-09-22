@@ -36,10 +36,9 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/h2-console/**", "/swagger-ui/**", "/swagger-ui.html",
+                        .requestMatchers("/auth/**", "/swagger-ui/**", "/swagger-ui.html",
                                 "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
